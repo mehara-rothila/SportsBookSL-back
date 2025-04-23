@@ -24,16 +24,31 @@ const app = express();
 // Create HTTP server and integrate Express
 const server = http.createServer(app);
 
+// --- Configure CORS for both Express and Socket.IO ---
+const corsOptions = {
+  origin: function(origin, callback) {
+    const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000").split(',');
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+};
+
 // --- Initialize Socket.IO ---
 const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000", // Allow frontend origin
-    methods: ["GET", "POST"]
-  }
+  cors: corsOptions
 });
 
 // --- Middleware ---
-app.use(cors()); // Enable CORS early
+app.use(cors(corsOptions)); // Enable configured CORS early
+app.use(express.json()); // Parse JSON request bodies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // --- Serve Static Files ---
 app.use(express.static(path.join(__dirname, 'public')));
