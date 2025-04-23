@@ -1,8 +1,8 @@
 // routes/api/auth.js
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const User = require('../../models/User'); // Add this import
-const mongoose = require('mongoose'); // Add this import
 const {
   registerUser,
   loginUser,
@@ -14,13 +14,16 @@ const { protect } = require('../../middleware/authMiddleware');
 
 router.use(express.json()); // Apply JSON parser
 
+// --- Standard Auth Routes ---
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/me', protect, getMe);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword', resetPassword);
 
-// Add diagnostic routes
+// --- Diagnostic Routes ---
+
+// Check if a specific user exists
 router.get('/check-user/:email', async (req, res) => {
   try {
     const { email } = req.params;
@@ -41,7 +44,7 @@ router.get('/check-user/:email', async (req, res) => {
   }
 });
 
-// Add test login route for debugging
+// Test database connection
 router.get('/test-db', async (req, res) => {
   try {
     console.log('[test-db] Testing database connection');
@@ -64,11 +67,65 @@ router.get('/test-db', async (req, res) => {
         nodeEnv: process.env.NODE_ENV,
         mongoUri: process.env.MONGO_URI ? 'Set (not showing value)' : 'Not set',
         jwtSecret: process.env.JWT_SECRET ? 'Set (not showing value)' : 'Not set',
-        jwtExpire: process.env.JWT_EXPIRE
+        jwtExpire: process.env.JWT_EXPIRE,
+        backendBaseUrl: process.env.BACKEND_BASE_URL || 'Not set'
       }
     });
   } catch (error) {
     console.error('[test-db] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test image URL transformation
+router.get('/check-image-transformation', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      testImageRelative: '/uploads/test.jpg',
+      testAvatar: '/uploads/avatars/default.jpg',
+      backendUrl: process.env.BACKEND_BASE_URL || 'Not set',
+      transformationActive: true,
+      serverTime: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add a test login route that tries with hard-coded credentials
+router.get('/test-login/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    console.log(`[test-login] Testing login functionality for: ${email}`);
+    
+    // Check MongoDB connection
+    console.log(`[test-login] MongoDB connection state: ${mongoose.connection.readyState}`);
+    
+    // Find user by email with password
+    const user = await User.findOne({ email }).select('+password');
+    
+    if (!user) {
+      return res.json({
+        status: 'error',
+        message: 'User not found',
+        email: email
+      });
+    }
+    
+    res.json({
+      status: 'success',
+      userFound: true,
+      hasPassword: !!user.password,
+      passwordLength: user.password ? user.password.length : 0,
+      // Don't include actual password hash for security
+      userId: user._id,
+      userRole: user.role,
+      // Include matchPassword method availability
+      hasMatchPasswordMethod: typeof user.matchPassword === 'function'
+    });
+  } catch (error) {
+    console.error(`[test-login] Error:`, error);
     res.status(500).json({ error: error.message });
   }
 });

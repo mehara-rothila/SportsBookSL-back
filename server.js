@@ -12,6 +12,7 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const apiRoutes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
+const { transformImageUrls } = require('./middleware/urlTransformMiddleware'); // Add this line
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +62,7 @@ const io = new Server(server, {
 app.use(cors(corsOptions)); // Enable configured CORS early
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(transformImageUrls); // Add this line to transform image URLs
 
 // --- Serve Static Files ---
 app.use(express.static(path.join(__dirname, 'public')));
