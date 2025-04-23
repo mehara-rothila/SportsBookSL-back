@@ -3,14 +3,15 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
-const http = require('http'); // Import Node's HTTP module
-const { Server } = require("socket.io"); // Import Socket.IO Server
-const jwt = require('jsonwebtoken'); // To verify tokens for socket auth
-const User = require('./models/User'); // To find user from token
+const http = require('http');
+const { Server } = require("socket.io");
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
+const mongoose = require('mongoose');
 
-const connectDB = require('./config/db'); // Assuming path is correct
-const apiRoutes = require('./routes'); // Main API router from routes/index.js
-const { notFound, errorHandler } = require('./middleware/errorMiddleware'); // Assuming path is correct
+const connectDB = require('./config/db');
+const apiRoutes = require('./routes');
+const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,17 @@ const app = express();
 
 // Create HTTP server and integrate Express
 const server = http.createServer(app);
+
+// Monitor MongoDB connection
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connected successfully');
+});
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+});
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected');
+});
 
 // --- Configure CORS for both Express and Socket.IO ---
 const corsOptions = {
@@ -128,6 +140,5 @@ server.listen(PORT, () =>
 );
 
 // --- Export io instance for use in other modules ---
-// This is a simple way, consider dependency injection for larger apps
 module.exports.io = io;
-module.exports.onlineUsers = onlineUsers; // Export map if needed directly elsewhere (less ideal)
+module.exports.onlineUsers = onlineUsers;

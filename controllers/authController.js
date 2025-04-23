@@ -3,8 +3,9 @@ const User = require('../models/User');
 const asyncHandler = require('express-async-handler');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const sendEmail = require('../utils/sendEmail'); // Import sendEmail utility
-const bcrypt = require('bcryptjs'); // Import bcrypt for comparing OTP
+const sendEmail = require('../utils/sendEmail');
+const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose'); // Added for connection state checking
 
 // --- Helper Function to Generate JWT ---
 const generateToken = (id) => {
@@ -23,6 +24,9 @@ const generateToken = (id) => {
 const registerUser = asyncHandler(async (req, res) => {
   console.log("[registerUser] Registration attempt received.");
   const { name, email, password, phone, address } = req.body;
+
+  // Check MongoDB connection
+  console.log(`[registerUser] MongoDB connection state: ${mongoose.connection.readyState}`);
 
   if (!name || !email || !password) { res.status(400); throw new Error('Please provide name, email, and password'); }
   if (password.length < 6) { res.status(400); throw new Error('Password must be at least 6 characters long'); }
@@ -50,24 +54,64 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   console.log(`[loginUser] Login attempt received for email: ${email}`);
+  console.log(`[loginUser] Request body:`, JSON.stringify(req.body));
+  
+  // Check MongoDB connection
+  console.log(`[loginUser] MongoDB connection state: ${mongoose.connection.readyState}`);
 
-  if (!email || !password) { res.status(400); throw new Error('Please provide email and password'); }
+  if (!email || !password) { 
+    console.log(`[loginUser] Missing email or password`);
+    res.status(400); 
+    throw new Error('Please provide email and password'); 
+  }
 
-  const user = await User.findOne({ email }).select('+password');
+  try {
+    // Explicitly log DB query
+    console.log(`[loginUser] Attempting to find user with email: ${email}`);
+    const user = await User.findOne({ email }).select('+password');
 
-  if (!user) { console.log(`[loginUser] User not found: ${email}`); res.status(401); throw new Error('Invalid email or password'); }
+    if (!user) { 
+      console.log(`[loginUser] User not found: ${email}`); 
+      res.status(401); 
+      throw new Error('Invalid email or password'); 
+    }
 
-  console.log(`[loginUser] User found: ${user.email}. Comparing provided password with stored hash.`);
-  const isMatch = await user.matchPassword(password);
-  console.log(`[loginUser] Password match result for ${user.email}: ${isMatch}`);
-
-  if (isMatch) {
-    console.log(`[loginUser] Login successful for ${user.email}. Generating token.`);
-    const token = generateToken(user._id);
-    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar, token: token });
-  } else {
-    console.log(`[loginUser] Invalid password provided for ${user.email}`);
-    res.status(401); throw new Error('Invalid email or password');
+    console.log(`[loginUser] User found: ${user.email}, ID: ${user._id}`);
+    console.log(`[loginUser] Password field exists: ${!!user.password}, Length: ${user.password?.length || 0}`);
+    
+    try {
+      // Log matchPassword attempt
+      console.log(`[loginUser] Attempting to match password for user: ${user.email}`);
+      const isMatch = await user.matchPassword(password);
+      console.log(`[loginUser] Password match result for ${user.email}: ${isMatch}`);
+      
+      if (isMatch) {
+        console.log(`[loginUser] Login successful for ${user.email}. Generating token.`);
+        const token = generateToken(user._id);
+        res.json({ 
+          _id: user._id, 
+          name: user.name, 
+          email: user.email, 
+          role: user.role, 
+          avatar: user.avatar, 
+          token: token 
+        });
+      } else {
+        console.log(`[loginUser] Invalid password provided for ${user.email}`);
+        res.status(401); 
+        throw new Error('Invalid email or password');
+      }
+    } catch (matchErr) {
+      console.error(`[loginUser] Error during password match:`, matchErr);
+      res.status(500);
+      throw new Error('Server error during authentication');
+    }
+  } catch (err) {
+    console.error(`[loginUser] Unhandled error:`, err);
+    if (!res.statusCode || res.statusCode === 200) {
+      res.status(500);
+    }
+    throw err;
   }
 });
 
