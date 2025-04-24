@@ -36,4 +36,12 @@ router.use('/weather', weatherRoutes);
 router.use('/admin', adminRoutes);
 router.use('/notifications', notificationRoutes); // <--- MOUNTED Notification Routes
 
+
+// Update to routes/index.js (adding these lines)
+const trainerApplicationRoutes = require('./api/trainerApplications');
+
+// Mount routes
+router.use('/trainer-applications', trainerApplicationRoutes);
+router.use('/admin/trainer-applications', trainerApplicationRoutes);
+
 module.exports = router;

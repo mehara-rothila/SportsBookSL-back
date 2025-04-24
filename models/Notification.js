@@ -20,8 +20,12 @@ const notificationSchema = new mongoose.Schema({
         'donation_thankyou', // For donor
         'weather_alert',
         'new_facility_nearby', // Example future enhancement
-        'system_announcement'
-        // Add other types as needed
+        'system_announcement',
+        // Adding trainer application notification types
+        'trainer_application_submitted',
+        'trainer_application_approved',
+        'trainer_application_rejected',
+        'new_trainer_application', // For admin notifications
     ],
   },
   message: { // The main notification text
