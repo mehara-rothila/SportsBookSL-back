@@ -281,7 +281,8 @@ const removeFavorite = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getUserFinancialAidApps = asyncHandler(async (req, res) => {
-    const applications = await FinancialAidApplication.find({ user: req.user._id })
+    // FIXED: Changed 'user' to 'applicantUser' to match the model field name
+    const applications = await FinancialAidApplication.find({ applicantUser: req.user._id })
         .sort({ createdAt: -1 });
     
     res.status(200).json(applications);
@@ -293,7 +294,8 @@ const getUserFinancialAidApps = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getUserDonationHistory = asyncHandler(async (req, res) => {
-    const donations = await Donation.find({ donor: req.user._id })
+    // FIXED: Changed 'donor' to 'donorUser' to match the model field name
+    const donations = await Donation.find({ donorUser: req.user._id })
         .populate('athlete', 'name')
         .sort({ donationDate: -1 });
     

@@ -5,6 +5,7 @@ const { protect, admin } = require('../../middleware/authMiddleware');
 const {
     submitApplication,
     getUserApplications,
+    getApplicationDetails,
 } = require('../../controllers/financialAidController');
 const { uploadFinancialAidDocs } = require('../../middleware/uploadMiddleware');
 
@@ -21,6 +22,10 @@ router.route('/apply')
 // GET /api/financial-aid/my-applications - Get current user's applications (protected)
 router.route('/my-applications')
     .get(protect, getUserApplications); // Keep protect here
+
+// GET /api/financial-aid/applications/:id - Get application details (protected)
+router.route('/applications/:id')
+    .get(protect, getApplicationDetails);
 
 // --- Admin Routes (Example - Implement in admin.js) ---
 /*

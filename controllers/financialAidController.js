@@ -262,7 +262,35 @@ const getUserApplications = asyncHandler(async (req, res) => {
     res.status(200).json(applications);
 });
 
+// @desc    Get financial aid application details
+// @route   GET /api/financial-aid/applications/:id
+// @access  Private
+const getApplicationDetails = asyncHandler(async (req, res) => {
+    const applicationId = req.params.id;
+    
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+        res.status(400);
+        throw new Error('Invalid application ID format');
+    }
+    
+    const application = await FinancialAidApplication.findById(applicationId);
+    
+    if (!application) {
+        res.status(404);
+        throw new Error('Application not found');
+    }
+    
+    // Check if the requesting user is the applicant
+    if (application.applicantUser.toString() !== req.user._id.toString()) {
+        res.status(403);
+        throw new Error('Not authorized to view this application');
+    }
+    
+    res.status(200).json(application);
+});
+
 module.exports = {
     submitApplication,
     getUserApplications,
+    getApplicationDetails,
 };
